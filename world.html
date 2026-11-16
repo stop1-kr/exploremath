@@ -507,22 +507,34 @@
       return;
     }
     collected.forEach(({ app, unitIndex, unitName }) => {
-      const mine = records.filter((r) => r.appId === app.id);
+      let mine = records.filter((r) => r.appId === app.id);
+      const bestLabel = app.best || '';
+      const playCount = mine.length;
+      if (bestLabel && mine.length) {
+        // 게임: 가장 높은 기록 하나만 보여 줘요
+        const valueOf = (r) => {
+          const pair = (Array.isArray(r.data) ? r.data : []).find((x) => x[0] === bestLabel);
+          const n = pair ? Number(pair[1]) : NaN;
+          return isFinite(n) ? n : -Infinity;
+        };
+        mine = [mine.slice().sort((a, b) => valueOf(b) - valueOf(a))[0]];
+      }
       const group = make('section', 'record-group');
       const gh = make('div', 'record-head');
       const titles = make('div');
       titles.appendChild(make('p', 'record-unit', `${unitIndex + 1}단원 ${unitName || ''}`.trim()));
       titles.appendChild(make('h4', 'record-title', app.title || app.id));
       gh.appendChild(titles);
-      gh.appendChild(make('span', 'record-count' + (mine.length ? ' is-done' : ''), mine.length ? `${mine.length}회 제출` : '미제출'));
+      const countText = !playCount ? '미제출' : (bestLabel ? `기록 ${playCount}회` : `${playCount}회 제출`);
+      gh.appendChild(make('span', 'record-count' + (playCount ? ' is-done' : ''), countText));
       group.appendChild(gh);
 
       if (!mine.length) {
-        group.appendChild(make('p', 'record-empty', '아직 제출하지 않았어요.'));
+        group.appendChild(make('p', 'record-empty', bestLabel ? '아직 기록이 없어요.' : '아직 제출하지 않았어요.'));
       }
       mine.forEach((r) => {
         const entry = make('article', 'record-entry');
-        entry.appendChild(make('p', 'record-time', r.time));
+        entry.appendChild(make('p', 'record-time', bestLabel ? `최고 기록 (${r.time})` : r.time));
         const rows = make('dl', 'record-rows');
         (Array.isArray(r.data) ? r.data : []).forEach((pair) => {
           rows.appendChild(make('dt', null, String(pair[0] || '')));
