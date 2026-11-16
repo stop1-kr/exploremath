@@ -28,6 +28,7 @@
         <button type="button" data-grade="3">3학년</button>
       </div>
       <span class="user-chip" id="userChip"></span>
+      <button type="button" class="btn-line" id="studentBtn" hidden>학생 관리</button>
       <button type="button" class="btn-line" id="noticeBtn">공지</button>
       <button type="button" class="btn-line" id="logoutBtn">로그아웃</button>
     </div>
@@ -108,6 +109,24 @@
   </div>
 </div>
 
+<!-- 선생님: 학생 관리 -->
+<div class="modal" id="studentModal" hidden>
+  <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
+    <div class="modal-head">
+      <h2 class="modal-title" id="studentModalTitle">학생 관리</h2>
+      <button type="button" class="btn-line btn-small" id="studentClose">닫기</button>
+    </div>
+    <form class="lookup" id="lookupForm" novalidate>
+      <label for="lookupId">학번</label>
+      <div class="lookup-row">
+        <input id="lookupId" inputmode="numeric" maxlength="5" placeholder="10101" autocomplete="off">
+        <button type="submit" class="btn-line" id="lookupBtn">조회</button>
+      </div>
+    </form>
+    <div class="modal-body" id="studentResult"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="demo-banner" id="demoBanner" hidden></div>
 
@@ -141,6 +160,8 @@
     adminModal: $('adminModal'), adminClose: $('adminClose'), adminList: $('adminList'),
     noticeForm: $('noticeForm'), nTarget: $('nTarget'), nTitle: $('nTitle'),
     nContent: $('nContent'), nSubmit: $('nSubmit'), adminMsg: $('adminMsg'), toast: $('toast'),
+    studentBtn: $('studentBtn'), studentModal: $('studentModal'), studentClose: $('studentClose'),
+    lookupForm: $('lookupForm'), lookupId: $('lookupId'), lookupBtn: $('lookupBtn'), studentResult: $('studentResult'),
   };
 
   EMW.drawChalk($('chalkLayer'));
@@ -181,7 +202,9 @@
     els.brand.textContent = name;
     document.title = name;
     els.heroText.textContent = `중학교 ${grade}학년 수학 단원별 웹앱·게임·시뮬레이션을 한곳에 모아 놓은 공간입니다.`;
-    els.userChip.textContent = isTeacher ? '선생님' : session.id;
+    els.userChip.textContent = session.id;
+    els.userChip.hidden = isTeacher;
+    els.studentBtn.hidden = !isTeacher;
     els.noticeBtn.textContent = isTeacher ? '공지 관리' : '공지';
     els.gradeSwitch.hidden = !isTeacher;
     els.gradeSwitch.querySelectorAll('button').forEach((b) => {
@@ -222,7 +245,12 @@
     a.target = '_blank';
     a.rel = 'noopener';
     a.dataset.appId = app.id;
-    if (app.type) a.appendChild(make('span', 'activity-type', app.type));
+    if (app.type || app.collect) {
+      const tags = make('span', 'activity-tags');
+      if (app.type) tags.appendChild(make('span', 'activity-type', app.type));
+      if (app.collect) tags.appendChild(make('span', 'activity-collect', '선생님께 제출'));
+      a.appendChild(tags);
+    }
     a.appendChild(make('span', 'activity-title', app.title || '이름 없는 활동'));
     if (app.desc) a.appendChild(make('span', 'activity-desc', app.desc));
     const foot = make('span', 'activity-foot');
@@ -414,6 +442,147 @@
     }
   }
 
+  /* ---------- 선생님: 학생 관리 ---------- */
+  let current = null;   // 지금 보고 있는 학생 { student, records }
+
+  function lookupMessage(text, kind) {
+    els.studentResult.textContent = '';
+    els.studentResult.appendChild(make('p', 'lookup-msg' + (kind ? ' is-' + kind : ''), text));
+  }
+
+  function gradeApps(g) {
+    const list = [];
+    const unitsG = DATA && Array.isArray(DATA[g]) ? DATA[g] : [];
+    unitsG.forEach((u, i) => appsOf(u).forEach((app) => list.push({ app, unitIndex: i, unitName: u.name })));
+    return list;
+  }
+
+  function infoRow(dl, label, value) {
+    dl.appendChild(make('dt', null, label));
+    dl.appendChild(make('dd', null, value || '-'));
+  }
+
+  function renderStudent() {
+    const st = current.student;
+    const records = current.records;
+    const p = EMW.parseStudentId(st.id);
+    const items = gradeApps(p.grade);
+    const usedSet = new Set(st.used || []);
+    const done = items.filter((x) => usedSet.has(x.app.id)).length;
+    const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+
+    const box = els.studentResult;
+    box.textContent = '';
+    box.scrollTop = 0;
+
+    const card = make('section', 'student-card');
+    const head = make('div', 'student-head');
+    const name = make('h3', 'student-id', st.id);
+    head.appendChild(name);
+    head.appendChild(make('span', 'student-class', `${p.grade}학년 ${p.cls}반 ${p.num}번`));
+    card.appendChild(head);
+
+    const dl = make('dl', 'info-grid');
+    infoRow(dl, '가입', st.joined);
+    infoRow(dl, '최근 접속', st.lastSeen);
+    infoRow(dl, '진행도', items.length ? `활동 ${items.length}개 중 ${done}개 (${pct}%)` : '등록된 활동 없음');
+    card.appendChild(dl);
+
+    if (st.reset) {
+      card.appendChild(make('p', 'reset-note',
+        '비밀번호가 초기화된 상태예요. 학생이 로그인 화면에서 같은 학번으로 새 비밀번호를 정하면 돼요. 진행도와 기록은 그대로 남아 있어요.'));
+    } else {
+      const btn = make('button', 'btn-line btn-small btn-danger', '비밀번호 초기화');
+      btn.type = 'button';
+      btn.addEventListener('click', () => resetPassword(st.id, btn));
+      card.appendChild(btn);
+    }
+    box.appendChild(card);
+
+    // 기록을 모으는 활동만 보여 줘요
+    box.appendChild(make('h3', 'records-title', '활동 기록'));
+    const collected = items.filter((x) => x.app.collect);
+    if (!collected.length) {
+      box.appendChild(make('p', 'modal-empty', `${p.grade}학년에는 기록을 모으는 활동이 아직 없어요.`));
+      return;
+    }
+    collected.forEach(({ app, unitIndex, unitName }) => {
+      const mine = records.filter((r) => r.appId === app.id);
+      const group = make('section', 'record-group');
+      const gh = make('div', 'record-head');
+      const titles = make('div');
+      titles.appendChild(make('p', 'record-unit', `${unitIndex + 1}단원 ${unitName || ''}`.trim()));
+      titles.appendChild(make('h4', 'record-title', app.title || app.id));
+      gh.appendChild(titles);
+      gh.appendChild(make('span', 'record-count' + (mine.length ? ' is-done' : ''), mine.length ? `${mine.length}회 제출` : '미제출'));
+      group.appendChild(gh);
+
+      if (!mine.length) {
+        group.appendChild(make('p', 'record-empty', '아직 제출하지 않았어요.'));
+      }
+      mine.forEach((r) => {
+        const entry = make('article', 'record-entry');
+        entry.appendChild(make('p', 'record-time', r.time));
+        const rows = make('dl', 'record-rows');
+        (Array.isArray(r.data) ? r.data : []).forEach((pair) => {
+          rows.appendChild(make('dt', null, String(pair[0] || '')));
+          rows.appendChild(make('dd', null, String(pair[1] == null ? '' : pair[1])));
+        });
+        entry.appendChild(rows);
+        group.appendChild(entry);
+      });
+      box.appendChild(group);
+    });
+  }
+
+  async function lookup() {
+    const sid = els.lookupId.value.trim();
+    if (!EMW.parseStudentId(sid)) { lookupMessage(EMW.message('BAD_ID'), 'err'); els.lookupId.focus(); return; }
+    els.lookupBtn.disabled = true;
+    lookupMessage('불러오는 중…');
+    const res = await EMW.api('getStudent', { id: session.id, token: session.token, studentId: sid });
+    els.lookupBtn.disabled = false;
+    if (res.ok) {
+      current = { student: res.student, records: res.records || [] };
+      renderStudent();
+    } else if (res.error === 'NOT_FOUND') {
+      current = null;
+      lookupMessage(`아직 가입하지 않은 학번이에요. (${sid})`);
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      lookupMessage(EMW.message(res.error), 'err');
+    }
+  }
+
+  async function resetPassword(sid, btn) {
+    if (!confirm(`${sid} 학생의 비밀번호를 초기화할까요?\n진행도와 활동 기록은 그대로 남아요.`)) return;
+    btn.disabled = true;
+    const res = await EMW.api('resetPassword', { id: session.id, token: session.token, studentId: sid });
+    if (res.ok) {
+      current.student.reset = true;
+      renderStudent();
+      toast(`${sid} 학생의 비밀번호를 초기화했어요.`);
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      btn.disabled = false;
+      toast(EMW.message(res.error));
+    }
+  }
+
+  els.studentBtn.addEventListener('click', () => {
+    if (!current) lookupMessage('학번을 입력하고 조회를 누르세요.');
+    openModal(els.studentModal);
+    els.lookupId.focus();
+  });
+  els.studentClose.addEventListener('click', () => closeModal(els.studentModal));
+  els.lookupId.addEventListener('input', () => {
+    const digits = els.lookupId.value.replace(/\D/g, '').slice(0, 5);
+    if (digits !== els.lookupId.value) els.lookupId.value = digits;
+  });
+  els.lookupForm.addEventListener('submit', (e) => { e.preventDefault(); lookup(); });
+
   /* ---------- 공지 ---------- */
   function noticeItem(n, forTeacher) {
     const item = make('article', 'notice');
@@ -535,6 +704,7 @@
     if (e.key !== 'Escape') return;
     if (!els.noticeModal.hidden) closeModal(els.noticeModal);
     else if (!els.adminModal.hidden) closeModal(els.adminModal);
+    else if (!els.studentModal.hidden) closeModal(els.studentModal);
     else if (openIndex >= 0) closePanel();
   });
 

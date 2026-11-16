@@ -194,6 +194,16 @@
     busy = false;
     submitBtn.disabled = false;
     submitBtn.textContent = label;
+
+    if (res && res.error === 'RESET') {
+      // 선생님이 비밀번호를 초기화한 학생: 같은 학번으로 새 비밀번호를 정하게 해요.
+      setMode('signup');
+      sid.value = id;
+      updateIdHint();
+      showMsg(EMW.message('RESET'), 'ok');
+      pw.focus();
+      return;
+    }
     showMsg(EMW.message(res && res.error), 'err');
   });
 

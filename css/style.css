@@ -196,11 +196,11 @@ button { cursor: pointer; }
   border-color: var(--chalk-yellow);
   box-shadow: 0 0 0 3px rgba(241, 210, 122, 0.22);
 }
-.field-hint { margin: 0; font-size: 14px; color: var(--chalk-faint); }
+.field-hint { margin: 0; font-size: 14px; color: var(--chalk-faint); word-break: keep-all; }
 .field-hint.is-ok { color: var(--chalk-yellow); }
 .field-hint.is-err { color: var(--chalk-red); }
 
-.form-msg { min-height: 0; margin: 0 0 14px; font-size: 15px; line-height: 1.55; }
+.form-msg { min-height: 0; margin: 0 0 14px; font-size: 15px; line-height: 1.55; word-break: keep-all; }
 .form-msg:empty { display: none; }
 .form-msg.is-err { color: var(--chalk-red); }
 .form-msg.is-ok { color: var(--chalk-green); }
@@ -299,7 +299,7 @@ button { cursor: pointer; }
   text-decoration: none;
   white-space: nowrap;
 }
-.topbar-tools { display: flex; align-items: center; gap: 8px; }
+.topbar-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .user-chip {
   padding: 0 4px 0 8px;
   font-size: 15px;
@@ -433,7 +433,16 @@ button { cursor: pointer; }
   text-decoration: none;
 }
 .activity:active { background: rgba(242, 240, 230, 0.09); }
+.activity-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .activity-type { font-size: 13px; font-weight: 500; color: var(--chalk-yellow); }
+.activity-collect {
+  padding: 0 8px;
+  border: 1px solid rgba(242, 240, 230, 0.3);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--chalk-soft);
+}
 .activity-title {
   margin-top: 2px;
   font-size: 18px;
@@ -643,6 +652,105 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 
+/* ---------- 학생 관리 (선생님) ---------- */
+.lookup { margin-top: 16px; }
+.lookup label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: var(--chalk-soft); }
+.lookup-row { display: flex; gap: 8px; }
+.lookup-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 50px;
+  padding: 11px 14px;
+  border: 1px solid rgba(242, 240, 230, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 20, 15, 0.32);
+  color: var(--chalk);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.lookup-row input:focus {
+  outline: none;
+  border-color: var(--chalk-yellow);
+  box-shadow: 0 0 0 3px rgba(241, 210, 122, 0.22);
+}
+.lookup-row .btn-line { min-height: 50px; padding: 0 22px; }
+.lookup-msg { margin: 4px 0; color: var(--chalk-soft); }
+.lookup-msg.is-err { color: var(--chalk-red); }
+
+.student-card {
+  padding: 18px 18px 16px;
+  border: 1px solid var(--board-line);
+  border-radius: 12px;
+  background: rgba(242, 240, 230, 0.035);
+}
+.student-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px; }
+.student-id {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.student-class { font-size: 15px; color: var(--chalk-soft); }
+
+.info-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+.info-grid dt { color: var(--chalk-faint); }
+.info-grid dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.reset-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(241, 210, 122, 0.12);
+  color: var(--chalk-yellow);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.records-title { margin: 26px 0 4px; font-size: 18px; font-weight: 600; }
+.record-group { padding: 16px 0 6px; border-top: 1px solid var(--board-line); }
+.records-title + .record-group { border-top: 0; }
+.record-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.record-unit { margin: 0; font-size: 13px; color: var(--chalk-faint); }
+.record-title { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.4; word-break: keep-all; }
+.record-count {
+  flex: none;
+  padding: 0 10px;
+  border: 1px solid var(--board-line-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 24px;
+  color: var(--chalk-faint);
+}
+.record-count.is-done { border-color: rgba(126, 220, 143, 0.45); color: var(--chalk-green); }
+.record-empty { margin: 8px 0 10px; font-size: 14px; color: var(--chalk-faint); }
+
+.record-entry {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(8, 20, 15, 0.3);
+}
+.record-time { margin: 0 0 6px; font-size: 13px; color: var(--chalk-faint); font-variant-numeric: tabular-nums; }
+.record-rows {
+  display: grid;
+  grid-template-columns: minmax(90px, 32%) 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.record-rows dt { color: var(--chalk-soft); word-break: keep-all; }
+.record-rows dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* ---------- 알림 ---------- */
 .toast {
   position: fixed;
@@ -696,6 +804,8 @@ button { cursor: pointer; }
   .progress { margin-top: 40px; padding: 18px; }
   .progress-pct { font-size: 28px; }
   .activity-list { grid-template-columns: 1fr; }
+  .record-rows { grid-template-columns: 1fr; gap: 2px; }
+  .record-rows dd { margin-bottom: 8px; }
 }
 
 /* ---------- 움직임 줄이기 설정을 켠 기기 ---------- */
