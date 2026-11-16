@@ -10,4 +10,4 @@
    학생들에게 공개하기 전에 반드시 주소를 넣어 주세요.
    ============================================================ */
 
-const API_URL = '';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyK-0-ySaK6rq3eUyXYKRZqH2D8M2025wFGV1k4u4jjPeO8I4KoW2SjLUMbyT2c78a9/exec';
