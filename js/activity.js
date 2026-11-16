@@ -11,6 +11,9 @@
 
    ■ 기록을 보낼 때
      EMWActivity.submit({ '1번 답': '2 × 3 × 3', '점수': 80 });
+
+   ■ 게임에서 최고 기록만 보낼 때
+     EMWActivity.submitBest('점수', 1200, { unit: '점' });
    ============================================================ */
 
 const EMWActivity = (() => {
@@ -159,6 +162,33 @@ const EMWActivity = (() => {
     return res;
   }
 
+  /**
+   * 게임용: 최고 기록만 보내기
+   *   EMWActivity.submitBest('점수', 1200, { unit: '점' });
+   * 이 학생이 이 기기에서 낸 기록 중 가장 높을 때만 선생님께 보내요.
+   * (다른 기기에서 낸 기록과 비교해 가장 높은 값은 선생님 화면에서 골라 보여 줘요)
+   */
+  async function submitBest(label, value, options) {
+    const opts = options || {};
+    const num = Number(value);
+    if (!isFinite(num) || num <= 0) return { ok: false, error: 'NOT_BEST' };
+
+    const session = EMW.getSession();
+    if (!session || session.role !== 'student') return submit({ [label]: num });   // 안내만 보여 줘요
+
+    const key = 'emw.best.' + session.id + '.' + activityId;
+    let prev = 0;
+    try { prev = Number(localStorage.getItem(key)) || 0; } catch (e) { /* 무시 */ }
+    if (num <= prev) return { ok: false, error: 'NOT_BEST', best: prev };
+
+    const unit = opts.unit || '';
+    const res = await submit({ [label]: num }, { successMessage: `새 최고 기록 ${num}${unit}! 선생님께 보냈어요.` });
+    if (res.ok) {
+      try { localStorage.setItem(key, String(num)); } catch (e) { /* 무시 */ }
+    }
+    return res;
+  }
+
   /* 로그인하지 않고 열었을 때 미리 알려 주기 */
   function warnIfLoggedOut() {
     if (EMW.getSession()) return;
@@ -170,5 +200,5 @@ const EMWActivity = (() => {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', warnIfLoggedOut);
   else warnIfLoggedOut();
 
-  return { submit, student, activityId };
+  return { submit, submitBest, student, activityId };
 })();
