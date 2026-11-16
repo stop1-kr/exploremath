@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B372E">
+<title>수학 탐구 월드</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2325473B'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23F2F0E6' font-family='Georgia,serif'%3E%CE%A3%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Hahmlet:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>if (!EMW.getSession()) location.replace('index.html');</script>
+</head>
+<body>
+<div class="chalk-layer" id="chalkLayer" aria-hidden="true"></div>
+
+<div class="top" id="top">
+  <header class="topbar">
+    <a class="brand" id="brand" href="world.html">수학 탐구 월드</a>
+    <div class="topbar-tools">
+      <div class="grade-switch" id="gradeSwitch" role="group" aria-label="학년 바꾸기" hidden>
+        <button type="button" data-grade="1">1학년</button>
+        <button type="button" data-grade="2">2학년</button>
+        <button type="button" data-grade="3">3학년</button>
+      </div>
+      <span class="user-chip" id="userChip"></span>
+      <button type="button" class="btn-line" id="noticeBtn">공지</button>
+      <button type="button" class="btn-line" id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+  <nav class="unit-nav" id="unitNav" aria-label="단원"></nav>
+  <section class="unit-panel" id="unitPanel" aria-label="단원 활동" hidden></section>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+
+<main class="hero">
+  <h1 class="chalk-title">수학 탐구 월드</h1>
+  <svg class="chalk-underline" viewBox="0 0 520 28" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="chalkGrain" x="-2%" y="-80%" width="104%" height="260%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="noise"/>
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.6 1.9" result="mask"/>
+        <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+      </filter>
+    </defs>
+    <path filter="url(#chalkGrain)" d="M6 17 C 92 9, 176 22, 262 14 S 432 8, 514 15"/>
+  </svg>
+  <p class="hero-lead">블록을 깨듯 하나씩, 직접 탐험하며 배우는 수학 세계</p>
+  <p class="hero-text" id="heroText">중학교 수학 단원별 웹앱·게임·시뮬레이션을 한곳에 모아 놓은 공간입니다.</p>
+  <p class="hero-text hero-hint">위쪽 단원 메뉴를 누르면 세부 목차가 열립니다.</p>
+
+  <section class="progress" aria-labelledby="progressLabel">
+    <div class="progress-head">
+      <h2 class="progress-label" id="progressLabel">나의 탐험 진행도</h2>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar" id="progressBar" role="progressbar"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="progressLabel"></div>
+    <p class="progress-note" id="progressNote"></p>
+  </section>
+</main>
+
+<!-- 학생: 공지 -->
+<div class="modal" id="noticeModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="noticeModalTitle">
+    <h2 class="modal-title" id="noticeModalTitle">공지사항</h2>
+    <div class="modal-body" id="noticeList"></div>
+    <button type="button" class="btn-primary" id="noticeOk">확인했어요</button>
+  </div>
+</div>
+
+<!-- 선생님: 공지 관리 -->
+<div class="modal" id="adminModal" hidden>
+  <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+    <div class="modal-head">
+      <h2 class="modal-title" id="adminModalTitle">공지 관리</h2>
+      <button type="button" class="btn-line btn-small" id="adminClose">닫기</button>
+    </div>
+    <div class="modal-body">
+      <form class="notice-form" id="noticeForm" novalidate>
+        <div class="field">
+          <label for="nTarget">보여 줄 학년</label>
+          <select id="nTarget">
+            <option value="0">전체 학년</option>
+            <option value="1">1학년</option>
+            <option value="2">2학년</option>
+            <option value="3">3학년</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="nTitle">제목</label>
+          <input id="nTitle" maxlength="100" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="nContent">내용</label>
+          <textarea id="nContent" rows="5" maxlength="3000"></textarea>
+        </div>
+        <p class="form-msg" id="adminMsg" role="status"></p>
+        <button type="submit" class="btn-primary" id="nSubmit">공지 올리기</button>
+      </form>
+      <h3 class="admin-list-title">올린 공지</h3>
+      <div id="adminList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="demo-banner" id="demoBanner" hidden></div>
+
+<script>
+(() => {
+  const session = EMW.getSession();
+  if (!session) return;
+
+  const isTeacher = session.role === 'teacher';
+  const DATA = typeof WORLD_DATA !== 'undefined' ? WORLD_DATA : null;
+  const TARGET_LABEL = ['전체 학년', '1학년', '2학년', '3학년'];
+
+  let grade = isTeacher ? EMW.getTeacherGrade() : (Number(session.grade) || 1);
+  let used = new Set([].concat(session.used || [], EMW.getPending(session.id)));
+  let notices = Array.isArray(session.notices) ? session.notices : [];
+  let openIndex = -1;
+
+  const $ = (id) => document.getElementById(id);
+  const make = (tag, className, text) => {
+    const n = document.createElement(tag);
+    if (className) n.className = className;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const els = {
+    top: $('top'), brand: $('brand'), userChip: $('userChip'), gradeSwitch: $('gradeSwitch'),
+    noticeBtn: $('noticeBtn'), logoutBtn: $('logoutBtn'), nav: $('unitNav'), panel: $('unitPanel'),
+    scrim: $('scrim'), heroText: $('heroText'), progressLabel: $('progressLabel'),
+    progressPct: $('progressPct'), progressBar: $('progressBar'), progressNote: $('progressNote'),
+    noticeModal: $('noticeModal'), noticeList: $('noticeList'), noticeOk: $('noticeOk'),
+    adminModal: $('adminModal'), adminClose: $('adminClose'), adminList: $('adminList'),
+    noticeForm: $('noticeForm'), nTarget: $('nTarget'), nTitle: $('nTitle'),
+    nContent: $('nContent'), nSubmit: $('nSubmit'), adminMsg: $('adminMsg'), toast: $('toast'),
+  };
+
+  EMW.drawChalk($('chalkLayer'));
+  EMW.showDemoBanner($('demoBanner'));
+
+  /* ---------- 데이터 ---------- */
+  const units = () => (DATA && Array.isArray(DATA[grade]) ? DATA[grade] : []);
+  const appsOf = (u) => (u && Array.isArray(u.apps) ? u.apps.filter((a) => a && a.id) : []);
+  const allApps = () => units().reduce((list, u) => list.concat(appsOf(u)), []);
+  const unitLabel = (i) => `${i + 1}단원`;
+
+  function saveCache() {
+    session.used = Array.from(used);
+    session.notices = notices;
+    EMW.setSession(session);
+  }
+
+  let toastTimer = 0;
+  function toast(text) {
+    els.toast.textContent = text;
+    els.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { els.toast.hidden = true; }, 4500);
+  }
+
+  function expire() {
+    EMW.clearSession();
+    location.replace('index.html?expired=1');
+  }
+
+  function measureTop() {
+    document.documentElement.style.setProperty('--top-h', els.top.offsetHeight + 'px');
+  }
+
+  /* ---------- 상단 ---------- */
+  function renderHeader() {
+    const name = `중${grade} 수학 탐구 월드`;
+    els.brand.textContent = name;
+    document.title = name;
+    els.heroText.textContent = `중학교 ${grade}학년 수학 단원별 웹앱·게임·시뮬레이션을 한곳에 모아 놓은 공간입니다.`;
+    els.userChip.textContent = isTeacher ? '선생님' : session.id;
+    els.noticeBtn.textContent = isTeacher ? '공지 관리' : '공지';
+    els.gradeSwitch.hidden = !isTeacher;
+    els.gradeSwitch.querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.grade) === grade));
+    });
+  }
+
+  function renderNav() {
+    els.nav.textContent = '';
+    units().forEach((u, i) => {
+      const apps = appsOf(u);
+      const done = apps.filter((a) => used.has(a.id)).length;
+      const btn = make('button', 'unit-tab' + (i === openIndex ? ' is-open' : ''));
+      btn.type = 'button';
+      btn.dataset.index = String(i);
+      btn.setAttribute('aria-expanded', String(i === openIndex));
+      btn.setAttribute('aria-controls', 'unitPanel');
+      if (u.name) btn.appendChild(make('span', 'unit-no', unitLabel(i)));
+      btn.appendChild(make('span', 'unit-name', u.name || unitLabel(i)));
+
+      let meta = '준비 중';
+      let complete = false;
+      if (apps.length && isTeacher) meta = `활동 ${apps.length}개`;
+      else if (apps.length) {
+        complete = done === apps.length;
+        meta = complete ? `${apps.length}개 모두 완료` : `${apps.length}개 중 ${done}개`;
+      }
+      btn.appendChild(make('span', 'unit-meta' + (complete ? ' is-complete' : ''), meta));
+      els.nav.appendChild(btn);
+    });
+  }
+
+  /* ---------- 단원 패널 ---------- */
+  function activityItem(app) {
+    const li = make('li');
+    const a = make('a', 'activity');
+    a.href = app.url || '#';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.dataset.appId = app.id;
+    if (app.type) a.appendChild(make('span', 'activity-type', app.type));
+    a.appendChild(make('span', 'activity-title', app.title || '이름 없는 활동'));
+    if (app.desc) a.appendChild(make('span', 'activity-desc', app.desc));
+    const foot = make('span', 'activity-foot');
+    foot.appendChild(make('span', 'activity-state'));
+    foot.appendChild(make('span', 'activity-open', '↗'));
+    foot.lastChild.setAttribute('aria-hidden', 'true');
+    a.appendChild(foot);
+    setActivityState(a, used.has(app.id));
+    li.appendChild(a);
+    return li;
+  }
+
+  function setActivityState(a, isUsed) {
+    const on = isUsed && !isTeacher;
+    a.classList.toggle('is-used', on);
+    a.querySelector('.activity-state').textContent = on ? '✓ 해 봤어요' : '새 탭에서 열기';
+  }
+
+  function renderPanel() {
+    const u = units()[openIndex];
+    if (!u) { closePanel(); return; }
+    els.panel.textContent = '';
+    const inner = make('div', 'panel-inner');
+    const head = make('div', 'panel-head');
+    const titles = make('div');
+    if (u.name) titles.appendChild(make('p', 'panel-no', unitLabel(openIndex)));
+    titles.appendChild(make('h2', 'panel-title', u.name || unitLabel(openIndex)));
+    head.appendChild(titles);
+    const close = make('button', 'btn-line btn-small', '닫기');
+    close.type = 'button';
+    close.addEventListener('click', closePanel);
+    head.appendChild(close);
+    inner.appendChild(head);
+
+    const apps = appsOf(u);
+    if (apps.length) {
+      const list = make('ul', 'activity-list');
+      apps.forEach((app) => list.appendChild(activityItem(app)));
+      inner.appendChild(list);
+    } else {
+      inner.appendChild(make('p', 'panel-empty', '이 단원의 활동은 준비하고 있어요.'));
+    }
+    els.panel.appendChild(inner);
+  }
+
+  function openPanel(i) {
+    openIndex = i;
+    renderPanel();
+    els.panel.hidden = false;
+    els.scrim.hidden = false;
+    els.panel.classList.remove('is-entering');
+    void els.panel.offsetWidth;
+    els.panel.classList.add('is-entering');
+    els.panel.scrollTop = 0;
+    syncTabs();
+    const tab = els.nav.querySelector(`[data-index="${i}"]`);
+    if (tab && tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  function closePanel() {
+    openIndex = -1;
+    els.panel.hidden = true;
+    els.scrim.hidden = true;
+    syncTabs();
+  }
+
+  function syncTabs() {
+    els.nav.querySelectorAll('.unit-tab').forEach((b) => {
+      const on = Number(b.dataset.index) === openIndex;
+      b.classList.toggle('is-open', on);
+      b.setAttribute('aria-expanded', String(on));
+    });
+  }
+
+  els.nav.addEventListener('click', (e) => {
+    const tab = e.target.closest('.unit-tab');
+    if (!tab) return;
+    const i = Number(tab.dataset.index);
+    if (i === openIndex) closePanel();
+    else openPanel(i);
+  });
+  els.scrim.addEventListener('click', closePanel);
+
+  els.panel.addEventListener('click', (e) => {
+    const a = e.target.closest('a.activity');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href || href === '#') { e.preventDefault(); toast('이 활동은 아직 주소가 없어요.'); return; }
+    if (isTeacher) return;
+    const id = a.dataset.appId;
+    if (!id || used.has(id)) return;
+    used.add(id);
+    EMW.addPending(session.id, id);
+    saveCache();
+    setActivityState(a, true);   // 링크가 열리도록 카드는 그대로 두고 표시만 바꿔요
+    renderNav();
+    renderProgress();
+    syncPending();
+  });
+
+  /* ---------- 진행도 ---------- */
+  function renderProgress() {
+    const apps = allApps();
+    const total = apps.length;
+    const done = isTeacher ? 0 : apps.filter((a) => used.has(a.id)).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+
+    els.progressLabel.textContent = isTeacher ? `${grade}학년 활동` : '나의 탐험 진행도';
+    els.progressPct.textContent = isTeacher ? `${total}개` : `${pct}%`;
+    els.progressBar.setAttribute('aria-valuenow', String(pct));
+    els.progressBar.setAttribute('aria-valuetext', `활동 ${total}개 중 ${done}개, ${pct}%`);
+
+    let note;
+    if (!total) note = '아직 등록된 활동이 없어요.';
+    else if (isTeacher) note = '선생님 계정은 진행도를 기록하지 않아요.';
+    else if (!done) note = `활동 ${total}개가 기다리고 있어요. 위쪽 단원 메뉴에서 시작해 보세요.`;
+    else if (done === total) note = `활동 ${total}개를 모두 해 봤어요!`;
+    else note = `활동 ${total}개 중 ${done}개를 해 봤어요.`;
+    els.progressNote.textContent = note;
+
+    renderBar(total, done, pct);
+  }
+
+  function renderBar(total, done, pct) {
+    const bar = els.progressBar;
+    const segmented = total > 0 && total <= 40;   // 활동이 40개 이하면 한 칸이 활동 하나
+    bar.classList.toggle('is-segmented', segmented);
+
+    let fresh = false;
+    if (segmented) {
+      if (bar.querySelectorAll('.seg').length !== total) {
+        bar.textContent = '';
+        for (let i = 0; i < total; i++) bar.appendChild(make('span', 'seg'));
+        fresh = true;
+      }
+    } else if (!bar.querySelector('.fill')) {
+      bar.textContent = '';
+      bar.appendChild(make('span', 'fill'));
+      fresh = true;
+    }
+
+    const apply = () => {
+      if (segmented) {
+        bar.querySelectorAll('.seg').forEach((s, i) => {
+          s.style.transitionDelay = fresh ? `${i * 45}ms` : '0ms';
+          s.classList.toggle('is-filled', i < done);
+        });
+      } else {
+        bar.querySelector('.fill').style.width = pct + '%';
+      }
+    };
+    if (fresh) requestAnimationFrame(() => requestAnimationFrame(apply));
+    else apply();
+  }
+
+  /* ---------- 서버와 맞추기 ---------- */
+  let syncing = false;
+  async function syncPending() {
+    if (isTeacher || syncing) return;
+    const pending = EMW.getPending(session.id);
+    if (!pending.length) return;
+    syncing = true;
+    const res = await EMW.api('markUsed', { id: session.id, token: session.token, appIds: pending });
+    syncing = false;
+    if (res.ok) {
+      EMW.clearPending(session.id, pending);
+      (res.used || []).forEach((x) => used.add(x));
+      saveCache();
+      if (EMW.getPending(session.id).length) syncPending();
+    } else if (res.error === 'AUTH') {
+      expire();
+    } else {
+      toast('진행도를 아직 저장하지 못했어요. 인터넷이 다시 연결되면 자동으로 저장해요.');
+    }
+  }
+
+  async function refresh() {
+    const res = await EMW.api('bootstrap', { id: session.id, token: session.token });
+    if (res.ok) {
+      used = new Set([].concat(res.used || [], EMW.getPending(session.id)));
+      notices = res.notices || [];
+      saveCache();
+      renderAll();
+      syncPending();
+    } else if (res.error === 'AUTH') {
+      expire();
+    } else {
+      toast(EMW.message(res.error));
+    }
+  }
+
+  /* ---------- 공지 ---------- */
+  function noticeItem(n, forTeacher) {
+    const item = make('article', 'notice');
+    const meta = make('p', 'notice-meta');
+    meta.appendChild(make('span', null, n.date || ''));
+    if (forTeacher) meta.appendChild(make('span', 'notice-target', TARGET_LABEL[Number(n.target) || 0]));
+    item.appendChild(meta);
+    item.appendChild(make('h3', 'notice-title', n.title || ''));
+    if (n.content) item.appendChild(make('p', 'notice-content', n.content));
+    if (forTeacher) {
+      const del = make('button', 'btn-line btn-small btn-danger', '삭제');
+      del.type = 'button';
+      del.dataset.noticeId = n.id;
+      item.appendChild(del);
+    }
+    return item;
+  }
+
+  function openModal(m) { m.hidden = false; }
+  function closeModal(m) { m.hidden = true; }
+
+  function openStudentNotices(auto) {
+    const list = notices.filter((n) => !Number(n.target) || Number(n.target) === grade);
+    if (auto && !list.length) return;
+    els.noticeList.textContent = '';
+    if (list.length) list.forEach((n) => els.noticeList.appendChild(noticeItem(n, false)));
+    else els.noticeList.appendChild(make('p', 'modal-empty', '지금은 공지가 없어요.'));
+    els.noticeList.scrollTop = 0;
+    openModal(els.noticeModal);
+    els.noticeOk.focus();
+  }
+
+  function renderAdminList() {
+    els.adminList.textContent = '';
+    if (!notices.length) {
+      els.adminList.appendChild(make('p', 'modal-empty', '아직 올린 공지가 없어요.'));
+      return;
+    }
+    notices.forEach((n) => els.adminList.appendChild(noticeItem(n, true)));
+  }
+
+  function setAdminMsg(text, kind) {
+    els.adminMsg.textContent = text || '';
+    els.adminMsg.className = 'form-msg' + (kind ? ' is-' + kind : '');
+  }
+
+  els.noticeBtn.addEventListener('click', () => {
+    if (isTeacher) {
+      setAdminMsg('');
+      renderAdminList();
+      openModal(els.adminModal);
+    } else {
+      openStudentNotices(false);
+    }
+  });
+  els.noticeOk.addEventListener('click', () => closeModal(els.noticeModal));
+  els.noticeModal.addEventListener('click', (e) => { if (e.target === els.noticeModal) closeModal(els.noticeModal); });
+  els.adminClose.addEventListener('click', () => closeModal(els.adminModal));
+
+  els.noticeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = els.nTitle.value.trim();
+    if (!title) { setAdminMsg(EMW.message('EMPTY_TITLE'), 'err'); els.nTitle.focus(); return; }
+    els.nSubmit.disabled = true;
+    els.nSubmit.textContent = '올리는 중…';
+    const res = await EMW.api('addNotice', {
+      id: session.id, token: session.token,
+      target: Number(els.nTarget.value), title, content: els.nContent.value.trim(),
+    });
+    els.nSubmit.disabled = false;
+    els.nSubmit.textContent = '공지 올리기';
+    if (res.ok) {
+      notices = res.notices || [];
+      saveCache();
+      els.noticeForm.reset();
+      renderAdminList();
+      setAdminMsg('공지를 올렸어요. 학생이 로그인하면 바로 보여요.', 'ok');
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      setAdminMsg(EMW.message(res.error), 'err');
+    }
+  });
+
+  els.adminList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-notice-id]');
+    if (!btn || !confirm('이 공지를 삭제할까요?')) return;
+    btn.disabled = true;
+    const res = await EMW.api('deleteNotice', { id: session.id, token: session.token, noticeId: btn.dataset.noticeId });
+    if (res.ok) {
+      notices = res.notices || [];
+      saveCache();
+      renderAdminList();
+      setAdminMsg('공지를 삭제했어요.', 'ok');
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      btn.disabled = false;
+      setAdminMsg(EMW.message(res.error), 'err');
+    }
+  });
+
+  /* ---------- 학년 바꾸기(선생님), 로그아웃 ---------- */
+  els.gradeSwitch.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-grade]');
+    if (!b) return;
+    grade = Number(b.dataset.grade);
+    EMW.setTeacherGrade(grade);
+    closePanel();
+    renderAll();
+  });
+
+  els.logoutBtn.addEventListener('click', () => {
+    EMW.clearSession();
+    location.replace('index.html');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!els.noticeModal.hidden) closeModal(els.noticeModal);
+    else if (!els.adminModal.hidden) closeModal(els.adminModal);
+    else if (openIndex >= 0) closePanel();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncPending();
+  });
+
+  /* ---------- 시작 ---------- */
+  function renderAll() {
+    renderHeader();
+    renderNav();
+    if (openIndex >= 0) renderPanel();
+    renderProgress();
+    measureTop();
+  }
+
+  renderAll();
+  window.addEventListener('resize', measureTop);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureTop);
+
+  if (!DATA) toast('data.js를 읽지 못했어요. 쉼표나 따옴표가 빠지지 않았는지 확인해 주세요.');
+
+  if (EMW.takeFresh()) {
+    if (!isTeacher) openStudentNotices(true);
+    syncPending();
+  } else {
+    refresh();
+  }
+})();
+</script>
+</body>
+</html>

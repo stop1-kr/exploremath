@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#25473B">
+<title>수학 탐구 월드</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2325473B'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23F2F0E6' font-family='Georgia,serif'%3E%CE%A3%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Hahmlet:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>if (EMW.getSession()) location.replace('world.html');</script>
+</head>
+<body>
+<div class="chalk-layer" id="chalkLayer" aria-hidden="true"></div>
+
+<main class="login">
+  <h1 class="chalk-title">수학 탐구 월드</h1>
+  <svg class="chalk-underline" viewBox="0 0 520 28" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="chalkGrain" x="-2%" y="-80%" width="104%" height="260%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="noise"/>
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.6 1.9" result="mask"/>
+        <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+      </filter>
+    </defs>
+    <path filter="url(#chalkGrain)" d="M6 17 C 92 9, 176 22, 262 14 S 432 8, 514 15"/>
+  </svg>
+  <p class="login-lead">블록을 깨듯 하나씩, 직접 탐험하며 배우는 수학 세계</p>
+
+  <section class="login-card" aria-labelledby="tabLogin">
+    <div class="tabs" id="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">로그인</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">회원가입</button>
+    </div>
+
+    <form id="authForm" novalidate>
+      <div class="field">
+        <label for="sid" id="sidLabel">학번</label>
+        <input id="sid" name="username" inputmode="numeric" autocomplete="username"
+               maxlength="5" placeholder="10101" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <p class="field-hint" id="sidHint"></p>
+      </div>
+
+      <div class="field">
+        <label for="pw">비밀번호</label>
+        <input id="pw" name="password" type="password" autocomplete="current-password" maxlength="20">
+        <p class="field-hint" id="pwHint" hidden>4~20자로 정해 주세요. 다른 사이트에서 쓰는 비밀번호는 쓰지 마세요.</p>
+      </div>
+
+      <div class="field" id="pw2Field" hidden>
+        <label for="pw2">비밀번호 확인</label>
+        <input id="pw2" type="password" autocomplete="new-password" maxlength="20">
+      </div>
+
+      <p class="form-msg" id="formMsg" role="alert"></p>
+      <button type="submit" class="btn-primary" id="submitBtn">로그인</button>
+    </form>
+
+    <div class="login-foot">
+      <p id="footNote">비밀번호를 잊었다면 선생님께 말씀해 주세요.</p>
+      <button type="button" class="link-btn" id="teacherToggle">선생님 로그인</button>
+    </div>
+  </section>
+</main>
+
+<div class="demo-banner" id="demoBanner" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form = $('authForm');
+  const sid = $('sid');
+  const pw = $('pw');
+  const pw2 = $('pw2');
+  const sidHint = $('sidHint');
+  const msg = $('formMsg');
+  const submitBtn = $('submitBtn');
+  const tabs = $('tabs');
+  const tabLogin = $('tabLogin');
+  const tabSignup = $('tabSignup');
+  const teacherToggle = $('teacherToggle');
+
+  const ID_HINT = '학년·반·번호 5자리 (예: 10101은 1학년 1반 1번)';
+  let mode = 'login';   // login | signup | teacher
+  let busy = false;
+
+  EMW.drawChalk($('chalkLayer'));
+  EMW.showDemoBanner($('demoBanner'));
+
+  function showMsg(text, kind) {
+    msg.textContent = text || '';
+    msg.className = 'form-msg' + (kind ? ' is-' + kind : '');
+  }
+
+  function updateIdHint() {
+    if (mode === 'teacher') { sidHint.hidden = true; return; }
+    sidHint.hidden = false;
+    const v = sid.value;
+    sidHint.className = 'field-hint';
+    if (v.length < 5) { sidHint.textContent = ID_HINT; return; }
+    const p = EMW.parseStudentId(v);
+    if (p) {
+      sidHint.textContent = `${p.grade}학년 ${p.cls}반 ${p.num}번`;
+      sidHint.classList.add('is-ok');
+    } else {
+      sidHint.textContent = '학번을 다시 확인해 주세요. ' + ID_HINT;
+      sidHint.classList.add('is-err');
+    }
+  }
+
+  function setMode(next) {
+    mode = next;
+    const isSignup = mode === 'signup';
+    const isTeacher = mode === 'teacher';
+
+    tabLogin.setAttribute('aria-selected', String(!isSignup));
+    tabSignup.setAttribute('aria-selected', String(isSignup));
+    tabSignup.hidden = isTeacher;
+    tabs.classList.toggle('is-single', isTeacher);
+    tabLogin.textContent = isTeacher ? '선생님 로그인' : '로그인';
+
+    $('sidLabel').textContent = isTeacher ? '선생님 아이디' : '학번';
+    sid.setAttribute('inputmode', isTeacher ? 'text' : 'numeric');
+    sid.setAttribute('maxlength', isTeacher ? '30' : '5');
+    sid.placeholder = isTeacher ? '' : '10101';
+
+    $('pwHint').hidden = !isSignup;
+    $('pw2Field').hidden = !isSignup;
+    pw.setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+
+    submitBtn.textContent = isSignup ? '가입하고 들어가기' : '로그인';
+    $('footNote').hidden = isTeacher;
+    teacherToggle.textContent = isTeacher ? '학생 로그인으로 돌아가기' : '선생님 로그인';
+
+    sid.value = '';
+    pw.value = '';
+    pw2.value = '';
+    showMsg('');
+    updateIdHint();
+  }
+
+  tabLogin.addEventListener('click', () => { if (mode === 'signup') setMode('login'); });
+  tabSignup.addEventListener('click', () => { if (mode !== 'signup') setMode('signup'); });
+  teacherToggle.addEventListener('click', () => setMode(mode === 'teacher' ? 'login' : 'teacher'));
+
+  sid.addEventListener('input', () => {
+    if (mode !== 'teacher') {
+      const digits = sid.value.replace(/\D/g, '').slice(0, 5);
+      if (digits !== sid.value) sid.value = digits;
+    }
+    updateIdHint();
+    showMsg('');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const id = sid.value.trim();
+    const password = pw.value;
+
+    if (mode === 'teacher') {
+      if (!id || !password) { showMsg('아이디와 비밀번호를 입력해 주세요.', 'err'); return; }
+    } else {
+      if (!EMW.parseStudentId(id)) { showMsg(EMW.message('BAD_ID'), 'err'); sid.focus(); return; }
+      if (mode === 'signup') {
+        if (password.length < 4 || password.length > 20) { showMsg(EMW.message('BAD_PASSWORD'), 'err'); pw.focus(); return; }
+        if (password !== pw2.value) { showMsg(EMW.message('PASSWORD_MISMATCH'), 'err'); pw2.focus(); return; }
+      } else if (!password) {
+        showMsg('비밀번호를 입력해 주세요.', 'err'); pw.focus(); return;
+      }
+    }
+
+    busy = true;
+    submitBtn.disabled = true;
+    const label = submitBtn.textContent;
+    submitBtn.textContent = '확인하는 중…';
+    showMsg('');
+
+    const res = await EMW.api(mode === 'signup' ? 'signup' : 'login', { id, password });
+
+    if (res && res.ok) {
+      EMW.setSession({
+        id: res.id, role: res.role, grade: res.grade, token: res.token,
+        used: res.used || [], notices: res.notices || [],
+      });
+      EMW.markFresh();
+      location.replace('world.html');
+      return;
+    }
+    busy = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = label;
+    showMsg(EMW.message(res && res.error), 'err');
+  });
+
+  if (new URLSearchParams(location.search).has('expired')) showMsg(EMW.message('AUTH'), 'err');
+  updateIdHint();
+})();
+</script>
+</body>
+</html>
