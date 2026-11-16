@@ -48,7 +48,11 @@ const WORLD_DATA = {
     { name: '실수와 그 계산', apps: [] },
     { name: '곱셈공식, 인수분해, 이차방정식', apps: [] },
     { name: '이차함수', apps: [] },
-    { name: '삼각비', apps: [] },
+    { name: '삼각비', apps: [
+      { id: '3-4-1', title: '🔴단위원과 📐삼각비의 원리', type: '시뮬레이션',
+        desc: '단위원에서 삼각비의 원리를 파악해보자',
+        url: 'apps/3-4-1.html', collect: false },
+    ] },
     { name: '원의 성질', apps: [] },
     { name: '확률', apps: [] },
   ],
