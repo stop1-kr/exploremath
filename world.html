@@ -9,10 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Hahmlet:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=5">
 <script src="js/config.js"></script>
-<script src="js/data.js"></script>
-<script src="js/common.js"></script>
+<!-- 활동 목록은 올릴 때마다 바로 보이도록 매번 새로 불러와요 -->
+<script>document.write('<script src="js/data.js?t=' + Date.now() + '"><\/script>');</script>
+<script src="js/common.js?v=5"></script>
 <script>if (!EMW.getSession()) location.replace('index.html');</script>
 </head>
 <body>
@@ -127,6 +128,53 @@
   </div>
 </div>
 
+<!-- 학생: 이름 입력 (이름 없이 가입한 계정) -->
+<div class="modal" id="nameModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
+    <h2 class="modal-title" id="nameModalTitle">이름을 알려 주세요</h2>
+    <p class="modal-lead">점수판과 선생님 화면에 학번과 함께 표시돼요.</p>
+    <form id="nameForm" novalidate>
+      <div class="field">
+        <label for="nameInput">이름</label>
+        <input id="nameInput" maxlength="20" autocomplete="name" placeholder="홍길동">
+      </div>
+      <p class="form-msg" id="nameMsg" role="alert"></p>
+      <button type="submit" class="btn-primary" id="nameSave">저장</button>
+    </form>
+  </div>
+</div>
+
+<!-- 선생님: 게임 점수판 -->
+<div class="modal board-modal" id="boardModal" hidden>
+  <div class="board" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
+    <div class="board-top">
+      <div class="board-heading">
+        <p class="board-game" id="boardGame"></p>
+        <h2 class="chalk-title board-title" id="boardTitle">점수판</h2>
+      </div>
+      <button type="button" class="btn-line btn-small" id="boardClose">닫기</button>
+    </div>
+
+    <form class="board-class" id="boardForm" novalidate>
+      <span class="board-grade" id="boardGrade"></span>
+      <label class="sr-only" for="boardClass">반</label>
+      <input id="boardClass" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="1">
+      <span class="board-unit">반</span>
+      <button type="submit" class="btn-line">보기</button>
+    </form>
+
+    <div class="board-status" id="boardStatus" hidden>
+      <p class="board-updated" id="boardUpdated"></p>
+      <div class="board-actions">
+        <button type="button" class="btn-line btn-small" id="boardRefresh">새로고침</button>
+        <button type="button" class="btn-line btn-small btn-danger" id="boardReset">초기화</button>
+      </div>
+    </div>
+
+    <div class="board-body" id="boardBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="demo-banner" id="demoBanner" hidden></div>
 
@@ -162,6 +210,10 @@
     nContent: $('nContent'), nSubmit: $('nSubmit'), adminMsg: $('adminMsg'), toast: $('toast'),
     studentBtn: $('studentBtn'), studentModal: $('studentModal'), studentClose: $('studentClose'),
     lookupForm: $('lookupForm'), lookupId: $('lookupId'), lookupBtn: $('lookupBtn'), studentResult: $('studentResult'),
+    nameModal: $('nameModal'), nameForm: $('nameForm'), nameInput: $('nameInput'), nameMsg: $('nameMsg'), nameSave: $('nameSave'),
+    boardModal: $('boardModal'), boardGame: $('boardGame'), boardClose: $('boardClose'), boardForm: $('boardForm'),
+    boardGrade: $('boardGrade'), boardClass: $('boardClass'), boardStatus: $('boardStatus'), boardUpdated: $('boardUpdated'),
+    boardRefresh: $('boardRefresh'), boardReset: $('boardReset'), boardBody: $('boardBody'),
   };
 
   EMW.drawChalk($('chalkLayer'));
@@ -202,7 +254,7 @@
     els.brand.textContent = name;
     document.title = name;
     els.heroText.textContent = `중학교 ${grade}학년 수학 단원별 웹앱·게임·시뮬레이션을 한곳에 모아 놓은 공간입니다.`;
-    els.userChip.textContent = session.id;
+    els.userChip.textContent = session.name ? `${session.id} ${session.name}` : session.id;
     els.userChip.hidden = isTeacher;
     els.studentBtn.hidden = !isTeacher;
     els.noticeBtn.textContent = isTeacher ? '공지 관리' : '공지';
@@ -239,7 +291,7 @@
 
   /* ---------- 단원 패널 ---------- */
   function activityItem(app) {
-    const li = make('li');
+    const li = make('li', 'activity-item');
     const a = make('a', 'activity');
     a.href = app.url || '#';
     a.target = '_blank';
@@ -260,6 +312,13 @@
     a.appendChild(foot);
     setActivityState(a, used.has(app.id));
     li.appendChild(a);
+    if (isTeacher && app.best) {
+      a.classList.add('has-board');
+      const boardBtn = make('button', 'board-open', '점수판 열기');
+      boardBtn.type = 'button';
+      boardBtn.addEventListener('click', () => openBoard(app));
+      li.appendChild(boardBtn);
+    }
     return li;
   }
 
@@ -432,9 +491,11 @@
     if (res.ok) {
       used = new Set([].concat(res.used || [], EMW.getPending(session.id)));
       notices = res.notices || [];
+      if (!isTeacher) session.name = res.name || '';
       saveCache();
       renderAll();
       syncPending();
+      if (!isTeacher && !session.name && els.nameModal.hidden) askName();
     } else if (res.error === 'AUTH') {
       expire();
     } else {
@@ -479,6 +540,7 @@
     const head = make('div', 'student-head');
     const name = make('h3', 'student-id', st.id);
     head.appendChild(name);
+    head.appendChild(make('span', 'student-name', st.name || '이름 없음'));
     head.appendChild(make('span', 'student-class', `${p.grade}학년 ${p.cls}반 ${p.num}번`));
     card.appendChild(head);
 
@@ -594,6 +656,170 @@
     if (digits !== els.lookupId.value) els.lookupId.value = digits;
   });
   els.lookupForm.addEventListener('submit', (e) => { e.preventDefault(); lookup(); });
+
+  /* ---------- 선생님: 게임 점수판 ---------- */
+  const BOARD_REFRESH_MS = 30000;
+  const board = { app: null, grade: 0, cls: 0, timer: 0, loading: false };
+  const boardClassKey = 'emw.boardClass';
+
+  function stopBoardTimer() { clearInterval(board.timer); board.timer = 0; }
+
+  function openBoard(app) {
+    board.app = app;
+    board.grade = grade;
+    board.cls = 0;
+    stopBoardTimer();
+    els.boardGame.textContent = app.title || app.id;
+    els.boardGrade.textContent = `${grade}학년`;
+    let last = '';
+    try { last = localStorage.getItem(boardClassKey) || ''; } catch (e) { /* 무시 */ }
+    els.boardClass.value = last;
+    els.boardStatus.hidden = true;
+    els.boardBody.textContent = '';
+    els.boardBody.appendChild(make('p', 'board-empty', '반을 입력하고 보기를 누르세요.'));
+    openModal(els.boardModal);
+    if (last) showBoard(Number(last));
+    else els.boardClass.focus();
+  }
+
+  function closeBoard() {
+    stopBoardTimer();
+    closeModal(els.boardModal);
+  }
+
+  function showBoard(cls) {
+    if (!(cls >= 1 && cls <= 20)) {
+      els.boardBody.textContent = '';
+      els.boardBody.appendChild(make('p', 'board-empty is-err', EMW.message('BAD_CLASS')));
+      return;
+    }
+    board.cls = cls;
+    try { localStorage.setItem(boardClassKey, String(cls)); } catch (e) { /* 무시 */ }
+    stopBoardTimer();
+    loadBoard(true);
+    board.timer = setInterval(() => loadBoard(false), BOARD_REFRESH_MS);
+  }
+
+  async function loadBoard(first) {
+    if (board.loading || !board.app || !board.cls) return;
+    board.loading = true;
+    if (first) {
+      els.boardBody.textContent = '';
+      els.boardBody.appendChild(make('p', 'board-empty', '불러오는 중…'));
+    }
+    const res = await EMW.api('getScoreboard', {
+      id: session.id, token: session.token, appId: board.app.id, grade: board.grade, cls: board.cls,
+    });
+    board.loading = false;
+    if (els.boardModal.hidden) return;
+    if (res.ok) {
+      renderBoard(res.rows || []);
+      els.boardStatus.hidden = false;
+      els.boardUpdated.textContent = `${res.updatedAt || ''}에 불러왔어요. 30초마다 자동으로 새로고침해요.`;
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      els.boardUpdated.textContent = EMW.message(res.error);
+      els.boardStatus.hidden = false;
+    }
+  }
+
+  function renderBoard(rows) {
+    const body = els.boardBody;
+    body.textContent = '';
+    if (!rows.length) {
+      body.appendChild(make('p', 'board-empty', '아직 이 반에서 받은 점수가 없어요. 학생이 게임을 마치면 여기에 이름이 올라와요.'));
+      return;
+    }
+    const label = board.app.best || '기록';
+    const table = make('table', 'board-table');
+    const thead = make('thead');
+    const hr = make('tr');
+    ['순위', '학번', '이름', label].forEach((t, i) => {
+      const th = make('th', i === 3 ? 'num' : null, t);
+      th.scope = 'col';
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    const tbody = make('tbody');
+    let rank = 0;
+    let prev = null;
+    rows.forEach((r, i) => {
+      if (r.value !== prev) { rank = i + 1; prev = r.value; }
+      const tr = make('tr', rank <= 3 ? `podium podium-${rank}` : null);
+      tr.appendChild(make('td', 'rank', String(rank)));
+      tr.appendChild(make('td', 'sid', r.id));
+      tr.appendChild(make('td', 'name', r.name || '이름 없음'));
+      tr.appendChild(make('td', 'num', Number(r.value).toLocaleString('ko-KR')));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+  }
+
+  els.boardForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    showBoard(Number(els.boardClass.value));
+  });
+  els.boardClass.addEventListener('input', () => {
+    const digits = els.boardClass.value.replace(/\D/g, '').slice(0, 2);
+    if (digits !== els.boardClass.value) els.boardClass.value = digits;
+  });
+  els.boardRefresh.addEventListener('click', () => loadBoard(false));
+  els.boardClose.addEventListener('click', closeBoard);
+  els.boardReset.addEventListener('click', async () => {
+    if (!board.cls) return;
+    const msg = `${board.grade}학년 ${board.cls}반의 '${board.app.title}' 점수판을 초기화할까요?\n\n`
+      + '지금 보이는 점수가 지워지고, 이제부터 학생들이 보내는 점수만 표시돼요.\n'
+      + '(학생별 역대 최고 기록은 학생 관리에 그대로 남아요)';
+    if (!confirm(msg)) return;
+    els.boardReset.disabled = true;
+    const res = await EMW.api('resetScoreboard', {
+      id: session.id, token: session.token, appId: board.app.id, grade: board.grade, cls: board.cls,
+    });
+    els.boardReset.disabled = false;
+    if (res.ok) {
+      toast(`${board.grade}학년 ${board.cls}반 점수판을 초기화했어요.`);
+      loadBoard(false);
+    } else if (res.error === 'AUTH' || res.error === 'FORBIDDEN') {
+      expire();
+    } else {
+      toast(EMW.message(res.error));
+    }
+  });
+
+  /* ---------- 학생: 이름 입력 ---------- */
+  let afterName = null;
+  function askName(then) {
+    afterName = then || null;
+    els.nameInput.value = '';
+    els.nameMsg.textContent = '';
+    openModal(els.nameModal);
+    els.nameInput.focus();
+  }
+  els.nameForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = els.nameInput.value.trim();
+    if (!name) { els.nameMsg.textContent = EMW.message('BAD_NAME'); els.nameMsg.className = 'form-msg is-err'; return; }
+    els.nameSave.disabled = true;
+    const res = await EMW.api('setName', { id: session.id, token: session.token, name });
+    els.nameSave.disabled = false;
+    if (res.ok) {
+      session.name = res.name;
+      saveCache();
+      renderHeader();
+      measureTop();
+      closeModal(els.nameModal);
+      if (afterName) { const next = afterName; afterName = null; next(); }
+    } else if (res.error === 'AUTH') {
+      expire();
+    } else {
+      els.nameMsg.textContent = EMW.message(res.error);
+      els.nameMsg.className = 'form-msg is-err';
+    }
+  });
 
   /* ---------- 공지 ---------- */
   function noticeItem(n, forTeacher) {
@@ -717,11 +943,15 @@
     if (!els.noticeModal.hidden) closeModal(els.noticeModal);
     else if (!els.adminModal.hidden) closeModal(els.adminModal);
     else if (!els.studentModal.hidden) closeModal(els.studentModal);
+    else if (!els.boardModal.hidden) closeBoard();
     else if (openIndex >= 0) closePanel();
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') syncPending();
+    if (document.visibilityState === 'visible') {
+      syncPending();
+      if (!els.boardModal.hidden && board.cls) loadBoard(false);
+    }
   });
 
   /* ---------- 시작 ---------- */
@@ -740,7 +970,8 @@
   if (!DATA) toast('data.js를 읽지 못했어요. 쉼표나 따옴표가 빠지지 않았는지 확인해 주세요.');
 
   if (EMW.takeFresh()) {
-    if (!isTeacher) openStudentNotices(true);
+    if (!isTeacher && !session.name) askName(() => openStudentNotices(true));
+    else if (!isTeacher) openStudentNotices(true);
     syncPending();
   } else {
     refresh();

@@ -751,6 +751,147 @@ button { cursor: pointer; }
 .record-rows dt { color: var(--chalk-soft); word-break: keep-all; }
 .record-rows dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* ---------- 게임 카드의 점수판 버튼 (선생님) ---------- */
+.activity-item { display: flex; flex-direction: column; }
+.activity-item .activity { flex: 1 1 auto; }
+.activity.has-board { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.board-open {
+  min-height: 46px;
+  border: 1px solid var(--board-line);
+  border-top: 1px dashed var(--board-line-strong);
+  border-radius: 0 0 12px 12px;
+  background: rgba(241, 210, 122, 0.08);
+  color: var(--chalk-yellow);
+  font-size: 15px;
+  font-weight: 600;
+}
+.board-open:active { background: rgba(241, 210, 122, 0.18); }
+
+/* ---------- 점수판 (나무 테를 두른 칠판) ---------- */
+.board-modal { padding: 16px; }
+.board {
+  display: flex;
+  flex-direction: column;
+  width: min(1000px, 100%);
+  height: min(92vh, 880px);
+  height: min(92dvh, 880px);
+  padding: 22px clamp(18px, 3vw, 34px) 18px;
+  border: 10px solid #5B4331;
+  border-bottom-width: 18px;
+  border-radius: 14px;
+  background-color: var(--board);
+  background-image: var(--board-dust);
+  background-size: 240px 240px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3), inset 0 0 40px rgba(0, 0, 0, 0.18);
+  animation: panel-in 0.22s ease-out;
+}
+.board-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.board-game { margin: 0 0 2px; font-size: 17px; font-weight: 600; color: var(--chalk-yellow); }
+.board-title { font-size: clamp(38px, 5.5vw, 60px); }
+
+.board-class {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 6px;
+  font-size: 22px;
+}
+.board-grade, .board-unit { font-weight: 600; }
+.board-class input {
+  width: 3.2em;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: 2px dashed var(--chalk-soft);
+  border-radius: 0;
+  background: transparent;
+  color: var(--chalk);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.board-class input:focus { outline: none; border-bottom-color: var(--chalk-yellow); }
+.board-class .btn-line { margin-left: 4px; }
+
+.board-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 0 10px;
+  border-bottom: 2px solid rgba(242, 240, 230, 0.55);
+}
+.board-updated { margin: 0; font-size: 14px; color: var(--chalk-faint); }
+.board-actions { display: flex; gap: 8px; }
+
+.board-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+.board-empty { margin: 0; padding: 48px 12px; text-align: center; font-size: 18px; color: var(--chalk-soft); word-break: keep-all; }
+.board-empty.is-err { color: var(--chalk-red); }
+
+.board-table { width: 100%; border-collapse: collapse; }
+.board-table th {
+  position: sticky;
+  top: 0;
+  padding: 12px 10px 8px;
+  background-color: var(--board);
+  background-image: var(--board-dust);
+  background-size: 240px 240px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--chalk-faint);
+}
+.board-table td {
+  padding: 12px 10px;
+  border-bottom: 1px dashed rgba(242, 240, 230, 0.2);
+  font-size: 20px;
+  vertical-align: middle;
+}
+.board-table .num { text-align: right; }
+.board-table td.rank {
+  width: 3.4em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--chalk-soft);
+}
+.board-table td.sid { width: 6em; color: var(--chalk-soft); font-variant-numeric: tabular-nums; }
+.board-table td.name { font-weight: 600; word-break: keep-all; }
+.board-table td.num {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.board-table tr.podium td { padding-top: 14px; padding-bottom: 14px; }
+.board-table tr.podium td.rank, .board-table tr.podium td.num { color: var(--chalk-yellow); }
+.board-table tr.podium-1 td.rank, .board-table tr.podium-1 td.num { font-size: 32px; }
+.board-table tr.podium-1 td.name { font-size: 24px; }
+
+/* ---------- 기타 ---------- */
+.modal-lead { margin: 6px 0 18px; color: var(--chalk-soft); }
+.student-name { font-size: 19px; font-weight: 600; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- 알림 ---------- */
 .toast {
   position: fixed;
@@ -805,6 +946,10 @@ button { cursor: pointer; }
   .progress-pct { font-size: 28px; }
   .activity-list { grid-template-columns: 1fr; }
   .record-rows { grid-template-columns: 1fr; gap: 2px; }
+  .board { border-width: 6px; border-bottom-width: 12px; }
+  .board-table td { font-size: 17px; padding: 10px 6px; }
+  .board-table td.sid { width: auto; font-size: 14px; }
+  .board-table td.num { font-size: 21px; }
   .record-rows dd { margin-bottom: 8px; }
 }
 
@@ -812,6 +957,6 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .chalk-sym { animation: none; }
   .chalk-underline path { animation: none; stroke-dashoffset: 0; }
-  .unit-panel.is-entering, .modal-card { animation: none; }
+  .unit-panel.is-entering, .modal-card, .board { animation: none; }
   .progress-bar .seg, .progress-bar .fill { transition: none; }
 }

@@ -149,11 +149,13 @@ const EMWActivity = (() => {
       appId: activityId,
       title: app ? app.title : '',
       data,
+      best: !!opts.best,
     });
     busy = false;
 
     if (res.ok) {
-      note(opts.successMessage || '선생님께 제출했어요.', 'ok');
+      const text = typeof opts.successMessage === 'function' ? opts.successMessage(res) : opts.successMessage;
+      note(text || '선생님께 제출했어요.', 'ok');
     } else if (res.error === 'AUTH') {
       note(EMW.message('AUTH'), 'err', { link: { href: loginUrl, text: '다시 로그인하기' }, sticky: true });
     } else {
@@ -163,30 +165,21 @@ const EMWActivity = (() => {
   }
 
   /**
-   * 게임용: 최고 기록만 보내기
+   * 게임용: 점수 보내기
    *   EMWActivity.submitBest('점수', 1200, { unit: '점' });
-   * 이 학생이 이 기기에서 낸 기록 중 가장 높을 때만 선생님께 보내요.
-   * (다른 기기에서 낸 기록과 비교해 가장 높은 값은 선생님 화면에서 골라 보여 줘요)
+   * 게임이 끝날 때마다 보내면 서버가 최고 기록인지 판단해 점수판에 올려요.
    */
-  async function submitBest(label, value, options) {
+  function submitBest(label, value, options) {
     const opts = options || {};
     const num = Number(value);
-    if (!isFinite(num) || num <= 0) return { ok: false, error: 'NOT_BEST' };
-
-    const session = EMW.getSession();
-    if (!session || session.role !== 'student') return submit({ [label]: num });   // 안내만 보여 줘요
-
-    const key = 'emw.best.' + session.id + '.' + activityId;
-    let prev = 0;
-    try { prev = Number(localStorage.getItem(key)) || 0; } catch (e) { /* 무시 */ }
-    if (num <= prev) return { ok: false, error: 'NOT_BEST', best: prev };
-
+    if (!isFinite(num) || num <= 0) return Promise.resolve({ ok: false, error: 'NOT_BEST' });
     const unit = opts.unit || '';
-    const res = await submit({ [label]: num }, { successMessage: `새 최고 기록 ${num}${unit}! 선생님께 보냈어요.` });
-    if (res.ok) {
-      try { localStorage.setItem(key, String(num)); } catch (e) { /* 무시 */ }
-    }
-    return res;
+    return submit({ [label]: num }, {
+      best: true,
+      successMessage: (res) => (res.improved
+        ? `새 최고 기록 ${num}${unit}! 점수판에 올렸어요.`
+        : `이번 기록 ${num}${unit}. 최고 기록은 ${res.best}${unit}이에요.`),
+    });
   }
 
   /* 로그인하지 않고 열었을 때 미리 알려 주기 */

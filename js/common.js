@@ -13,6 +13,7 @@ const EMW = (() => {
     demoUsers: 'emw.demo.users',
     demoNotices: 'emw.demo.notices',
     demoRecords: 'emw.demo.records',
+    demoScores: 'emw.demo.scores',
   };
 
   const RAW_URL = typeof API_URL === 'string' ? API_URL.trim() : '';
@@ -90,6 +91,8 @@ const EMW = (() => {
     NETWORK: '서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. 계속 안 되면 학교 네트워크에서 차단된 것일 수 있어요.',
     BAD_ID: '학번 5자리를 정확히 입력해 주세요. 예) 1학년 1반 1번은 10101',
     BAD_PASSWORD: '비밀번호는 4자 이상 20자 이하로 정해 주세요.',
+    BAD_NAME: '이름을 입력해 주세요. (20자 이내)',
+    BAD_CLASS: '반 번호를 확인해 주세요.',
     PASSWORD_MISMATCH: '비밀번호 확인이 위의 비밀번호와 달라요.',
     EXISTS: '이미 가입된 학번이에요. 로그인 탭에서 들어가세요. 가입한 적이 없다면 선생님께 알려 주세요.',
     NOT_FOUND: '가입되지 않은 학번이에요. 회원가입 탭에서 먼저 가입해 주세요.',
@@ -150,13 +153,15 @@ const EMW = (() => {
     switch (action) {
       case 'signup': {
         if (!sid) return { ok: false, error: 'BAD_ID' };
+        const name = String(d.name || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+        if (!name) return { ok: false, error: 'BAD_NAME' };
         const old = users[d.id];
         if (old && old.password) return { ok: false, error: 'EXISTS' };
         users[d.id] = old
-          ? Object.assign(old, { password: d.password, lastSeen: stamp() })
-          : { password: d.password, used: [], joined: stamp(), lastSeen: stamp() };
+          ? Object.assign(old, { password: d.password, name, lastSeen: stamp() })
+          : { password: d.password, name, used: [], joined: stamp(), lastSeen: stamp() };
         saveUsers();
-        return { ok: true, id: d.id, role: 'student', grade: sid.grade, token: 'demo', used: users[d.id].used, notices: forGrade(sid.grade) };
+        return { ok: true, id: d.id, name, role: 'student', grade: sid.grade, token: 'demo', used: users[d.id].used, notices: forGrade(sid.grade) };
       }
       case 'login': {
         if (d.id === 'teacher') {
@@ -171,12 +176,21 @@ const EMW = (() => {
         if (u.password !== d.password) return { ok: false, error: 'WRONG_PASSWORD' };
         u.lastSeen = stamp();
         saveUsers();
-        return { ok: true, id: d.id, role: 'student', grade: sid.grade, token: 'demo', used: u.used, notices: forGrade(sid.grade) };
+        return { ok: true, id: d.id, name: u.name || '', role: 'student', grade: sid.grade, token: 'demo', used: u.used, notices: forGrade(sid.grade) };
       }
       case 'bootstrap': {
         if (isTeacher) return { ok: true, used: [], notices };
         const u = users[d.id];
-        return u && u.password ? { ok: true, used: u.used, notices: forGrade(sid.grade) } : { ok: false, error: 'AUTH' };
+        return u && u.password ? { ok: true, name: u.name || '', used: u.used, notices: forGrade(sid.grade) } : { ok: false, error: 'AUTH' };
+      }
+      case 'setName': {
+        const u = users[d.id];
+        if (!u || !u.password) return { ok: false, error: 'AUTH' };
+        const name = String(d.name || '').replace(/\s+/g, ' ').trim().slice(0, 20);
+        if (!name) return { ok: false, error: 'BAD_NAME' };
+        u.name = name;
+        saveUsers();
+        return { ok: true, name };
       }
       case 'markUsed': {
         const u = users[d.id];
@@ -190,9 +204,46 @@ const EMW = (() => {
         if (!u || !u.password) return { ok: false, error: 'AUTH' };
         if (!d.appId) return { ok: false, error: 'BAD_ACTIVITY' };
         if (!Array.isArray(d.data) || !d.data.length) return { ok: false, error: 'EMPTY_RECORD' };
+        let result = { ok: true };
+        if (d.best) {
+          const value = Number(d.data[0][1]);
+          const scores = read('local', KEY.demoScores, {});
+          const key = d.appId + '|' + d.id;
+          const sc = scores[key] || { cur: null, all: null };
+          const improved = sc.cur == null || value > sc.cur;
+          const allTimeBest = sc.all == null || value > sc.all;
+          if (improved) { sc.cur = value; sc.time = stamp(); }
+          if (allTimeBest) sc.all = value;
+          scores[key] = sc;
+          write('local', KEY.demoScores, scores);
+          result = { ok: true, improved, best: sc.cur };
+          if (!allTimeBest) return result;
+        }
         records.push({ time: stamp(), studentId: d.id, appId: d.appId, title: d.title || '', data: d.data });
         write('local', KEY.demoRecords, records);
-        return { ok: true };
+        return result;
+      }
+      case 'getScoreboard':
+      case 'resetScoreboard': {
+        if (!isTeacher) return { ok: false, error: 'FORBIDDEN' };
+        const cls = Number(d.cls);
+        if (!(cls >= 1 && cls <= MAX_CLASS)) return { ok: false, error: 'BAD_CLASS' };
+        const prefix = String(d.grade) + String(cls).padStart(2, '0');
+        const scores = read('local', KEY.demoScores, {});
+        const mine = Object.keys(scores).filter((k) => {
+          const [appId, sidKey] = k.split('|');
+          return appId === d.appId && sidKey.indexOf(prefix) === 0 && scores[k].cur != null;
+        });
+        if (action === 'resetScoreboard') {
+          mine.forEach((k) => { scores[k].cur = null; });
+          write('local', KEY.demoScores, scores);
+          return { ok: true, cleared: mine.length };
+        }
+        const rows = mine.map((k) => {
+          const sidKey = k.split('|')[1];
+          return { id: sidKey, name: (users[sidKey] && users[sidKey].name) || '', value: scores[k].cur, time: scores[k].time };
+        }).sort((a, b) => b.value - a.value);
+        return { ok: true, rows, updatedAt: new Date().toTimeString().slice(0, 8) };
       }
       case 'getStudent': {
         if (!isTeacher) return { ok: false, error: 'FORBIDDEN' };
@@ -200,7 +251,7 @@ const EMW = (() => {
         if (!u) return { ok: false, error: 'NOT_FOUND' };
         return {
           ok: true,
-          student: { id: d.studentId, reset: !u.password, used: u.used, joined: u.joined || '', lastSeen: u.lastSeen || '' },
+          student: { id: d.studentId, name: u.name || '', reset: !u.password, used: u.used, joined: u.joined || '', lastSeen: u.lastSeen || '' },
           records: records.filter((r) => r.studentId === d.studentId).reverse(),
         };
       }
