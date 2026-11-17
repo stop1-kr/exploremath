@@ -315,11 +315,12 @@ const EMW = (() => {
         s.style.top = (((r + rand(0.2, 0.8)) / rows) * 100).toFixed(2) + '%';
         s.style.fontSize = Math.round(isLong ? rand(20, 30) : rand(28, 58)) + 'px';
         s.style.setProperty('--o', (isCentral ? rand(0.07, 0.13) : rand(0.2, 0.36)).toFixed(2));
+        const sign = () => (Math.random() < 0.5 ? -1 : 1);
         s.style.setProperty('--r', rand(-14, 14).toFixed(1) + 'deg');
-        s.style.setProperty('--dx', Math.round(rand(-36, 36)) + 'px');
-        s.style.setProperty('--dy', Math.round(rand(-30, 30)) + 'px');
-        s.style.setProperty('--dur', rand(14, 26).toFixed(1) + 's');
-        s.style.animationDelay = (-rand(0, 20)).toFixed(1) + 's';
+        s.style.setProperty('--dx', Math.round(sign() * rand(70, 140)) + 'px');   // 좌우로 움직이는 거리
+        s.style.setProperty('--dy', Math.round(sign() * rand(50, 110)) + 'px');   // 위아래로 움직이는 거리
+        s.style.setProperty('--dur', rand(6, 11).toFixed(1) + 's');               // 한 번 오가는 시간
+        s.style.animationDelay = (-rand(0, 10)).toFixed(1) + 's';
         frag.appendChild(s);
       }
     }

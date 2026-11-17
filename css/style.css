@@ -84,8 +84,9 @@ button { cursor: pointer; }
 
 @keyframes chalk-drift {
   0%   { transform: translate(-50%, -50%) translate(0, 0) rotate(var(--r)); }
-  50%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.6), var(--dy)) rotate(calc(var(--r) + 5deg)); }
-  100% { transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) * -0.5)) rotate(calc(var(--r) - 4deg)); }
+  35%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.45), var(--dy)) rotate(calc(var(--r) + 9deg)); }
+  70%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.8), calc(var(--dy) * -0.35)) rotate(calc(var(--r) - 6deg)); }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) * 0.5)) rotate(calc(var(--r) + 3deg)); }
 }
 
 /* 분필로 쓴 제목 */

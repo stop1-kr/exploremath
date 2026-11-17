@@ -56,6 +56,12 @@ const WORLD_DATA = {
       { id: '3-3-1', title: '🐛 이차함수 지렁이 게임', type: '게임',
         desc: '이차함수 식을 추측해 가장 긴 지렁이를 만들자!',
         url: 'apps/3-3-1.html', collect: true, best: '지렁이 길이' },
+      { id: '3-3-2', title: '🚲 자전거 정지 거리', type: '시뮬레이션',
+        desc: '자전거의 제동 거리와 이차 함수와의 관계를 알아보자',
+        url: 'apps/3-3-2.html', collect: false },
+      { id: '3-3-3', title: '⚡ 반응 속도 측정', type: '시뮬레이션',
+        desc: '자전거 제동 거리 측정을 위한 반응 속도를 측정해보자',
+        url: 'apps/3-3-3.html', collect: false },
     ] },
     { name: '삼각비', apps: [
       { id: '3-4-1', title: '🔴단위원과 📐삼각비의 원리', type: '시뮬레이션',
